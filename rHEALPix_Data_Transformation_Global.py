@@ -10,7 +10,7 @@ from rhealpixdggs.ellipsoids import Ellipsoid, WGS84_A, WGS84_F
 north_square = 1
 south_square = 0
 lon_0 = 0
-N_side = 3
+N_side = 2
 
 rdggs = rhp.RHEALPixDGGS(ellipsoid=Ellipsoid(a=WGS84_A, f=WGS84_F, lon_0=10), north_square=north_square,
                          south_square=south_square, N_side=N_side)
@@ -38,19 +38,17 @@ def raster2rhealpix(rdggs, rhealpix_common_proj_string, input_file_path, output_
     # dst_resolution = rdggs.cell_width(dst_resolution_idx)
 
     with rasterio.open(input_file_path) as raster:
-        left = raster.profile["transform"][2]
-        top = raster.profile["transform"][5]
-        res_x = raster.profile["transform"][0]
-        res_y = raster.profile["transform"][4]
-        right = left + raster.profile["width"] * res_x
-        bottom = top + raster.profile["height"] * res_y
+        left = -180
+        top = 90
+        right = 180
+        bottom = -90
         input_crs = raster.profile["crs"]
         dst_crs = rhealpix_common_proj_string
 
         transform, width, height = rasterio.warp.calculate_default_transform(
             input_crs, dst_crs, raster.width, raster.height,
             left=left, right=right, top=top, bottom=bottom,
-            dst_width=3 ** resolution_idx * 4, dst_height=3 ** resolution_idx * 3)
+            dst_width=N_side ** resolution_idx * 4, dst_height=N_side ** resolution_idx * 3)
 
         # This should do the alignment, but it seems it does not. Horizontal alignment seems fine, but
         # vertical alignment looks like it is off by half a pixel, giving cell centroids aligned with
@@ -58,7 +56,7 @@ def raster2rhealpix(rdggs, rhealpix_common_proj_string, input_file_path, output_
         # (so neither in the center of the pixels nor in a corner, which is problematic)
         # transform, width, height = rasterio.warp.aligned_target(transform, width, height, dst_resolution)
         # We have to do a similar operation manually
-        transform = align_transform(rdggs, transform, dst_resolution_idx)
+        # transform = align_transform(rdggs, transform, dst_resolution_idx)
 
         set_src_nodata = raster.nodata
         set_dst_nodata = raster.nodata
@@ -128,8 +126,8 @@ def vector_file_to_rhealpix(rdggs, input_file_path, output_file_path, dst_resolu
 
 
 input_file_path = r"D:\组内项目\DGGS\data\test\relative_humidity_20200101T000000Z.tif"
-output_file_path = r"D:\组内项目\DGGS\data\test\relative_humidity_20200101T000000Z-rHEALPix-" + str({
-    resolution_idx}) + ".tif"
+output_file_path = r"D:\组内项目\DGGS\data\test\relative_humidity_20200101T000000Z-rHEALPix-" + str(N_side) + "_" + str(
+    resolution_idx) + ".tif"
 
 raster2rhealpix(rdggs, rhealpix_common_proj_string, input_file_path, output_file_path,
                 resolution_idx, rasterio.enums.Resampling.nearest)
