@@ -47,23 +47,50 @@ def cog_generate(source_path, tms, resolution):
     if max_zoom_level == -1:
         print("tms参数错误")
     else:
-        for zoom_level in range(0, max_zoom_level + 1):
-            cog_translate(
-                source_path,
-                source_path.replace(".tif", "/") + str(tms) + "/" + source_path.split("/")[-1].replace(".tif", "") +
-                "_" + tms + "_z" + str(zoom_level) + ".tif",
-                cog_profile,
-                web_optimized=True,
-                tms=morecantile.tms.get("WGS1984Quad"),
-                # https://github.com/developmentseed/morecantile?tab=readme-ov-file#defaults-grids
-                overview_level=0,  # 概览级别
-                zoom_level=zoom_level,  # 缩放级别
-                # in_memory=True,  # 是否在内存中处理
-                # aligned_levels=4, # 与几个层级对齐
-                # additional_cog_metadata={
-                #     "rhealpix:tile_format": "rHEALPix",
-                # },
-            )
+        if tms == "rHEALPixCustom":
+            north_square = 3
+            south_square = 1
+            lon_0 = 0
+            crs = CRS.from_proj4(
+                "+proj=rhealpix +ellps=WGS84 +south_square=" + str(south_square) + " +north_square=" + str(
+                    north_square) + " +lon_0=" + str(lon_0))
+            extent = [-20015625.00, -15011718.75, 20015625.00, 15011718.75]
+            tms = morecantile.TileMatrixSet.custom(extent=extent, crs=crs, matrix_scale=[4, 3])
+            for zoom_level in range(0, max_zoom_level + 1):
+                cog_translate(
+                    source_path,
+                    source_path.replace(".tif", "/") + str(tms) + "/" + source_path.split("/")[-1].replace(".tif", "") +
+                    "_" + tms + "_z" + str(zoom_level) + ".tif",
+                    cog_profile,
+                    web_optimized=True,
+                    tms=tms,
+                    # https://github.com/developmentseed/morecantile?tab=readme-ov-file#defaults-grids
+                    overview_level=0,  # 概览级别
+                    zoom_level=zoom_level,  # 缩放级别
+                    # in_memory=True,  # 是否在内存中处理
+                    # aligned_levels=4, # 与几个层级对齐
+                    # additional_cog_metadata={
+                    #     "rhealpix:tile_format": "rHEALPix",
+                    # },
+                )
+        else:
+            for zoom_level in range(0, max_zoom_level + 1):
+                cog_translate(
+                    source_path,
+                    source_path.replace(".tif", "/") + str(tms) + "/" + source_path.split("/")[-1].replace(".tif", "") +
+                    "_" + tms + "_z" + str(zoom_level) + ".tif",
+                    cog_profile,
+                    web_optimized=True,
+                    tms=morecantile.tms.get(tms),
+                    # https://github.com/developmentseed/morecantile?tab=readme-ov-file#defaults-grids
+                    overview_level=0,  # 概览级别
+                    zoom_level=zoom_level,  # 缩放级别
+                    # in_memory=True,  # 是否在内存中处理
+                    # aligned_levels=4, # 与几个层级对齐
+                    # additional_cog_metadata={
+                    #     "rhealpix:tile_format": "rHEALPix",
+                    # },
+                )
 
 
 if __name__ == "__main__":
