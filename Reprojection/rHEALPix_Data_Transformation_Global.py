@@ -7,16 +7,16 @@ import rhealpixdggs.dggs as rhp
 from rasterio.transform import Affine
 from rhealpixdggs.ellipsoids import Ellipsoid, WGS84_A, WGS84_F
 
-north_square = 1
-south_square = 0
-lon_0 = 0
+north_square = 3
+south_square = 1
+lon_0 = -5
 N_side = 2
 
 rdggs = rhp.RHEALPixDGGS(ellipsoid=Ellipsoid(a=WGS84_A, f=WGS84_F, lon_0=10), north_square=north_square,
                          south_square=south_square, N_side=N_side)
 rhealpix_common_proj_string = f"+proj=rhealpix +south_square={south_square} +north_square={north_square} " \
                               f"+lon_0={lon_0}"
-resolution_idx = 7
+resolution_idx = 9
 
 
 def cartesian_dist(x1, y1, x2, y2):
@@ -125,9 +125,9 @@ def vector_file_to_rhealpix(rdggs, input_file_path, output_file_path, dst_resolu
     os.remove(tmp_file_path)
 
 
-input_file_path = r"D:\组内项目\DGGS\data\test\relative_humidity_20200101T000000Z.tif"
-output_file_path = r"D:\组内项目\DGGS\data\test\relative_humidity_20200101T000000Z-rHEALPix-" + str(N_side) + "_" + str(
-    resolution_idx) + ".tif"
+input_file_path = r"D:\组内项目\DGGS-Cube计算优化\DGGS\data\cogtest\d.tif"
+output_file_path = r"D:\组内项目\DGGS-Cube计算优化\DGGS\data\cogtest\d-rHEALPix-" + str(lon_0) + "_" + str(
+    north_square) + "_" + str(south_square) + "_" + str(N_side) + "_" + str(resolution_idx) + ".tif"
 
 raster2rhealpix(rdggs, rhealpix_common_proj_string, input_file_path, output_file_path,
                 resolution_idx, rasterio.enums.Resampling.nearest)

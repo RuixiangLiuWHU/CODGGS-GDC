@@ -127,8 +127,8 @@ def vector_file_to_rhealpix(rdggs, input_file_path, output_file_path, dst_resolu
     os.remove(tmp_file_path)
 
 
-input_file_path = r"D:\组内项目\DGGS\data\test\relative_humidity_20200101T000000Z.tif"
-output_file_path = r"D:\组内项目\DGGS\data\test\relative_humidity_20200101T000000Z-rHEALPix-" + str({
+input_file_path = r"D:\组内项目\DGGS\data\cogtest\c.tif"
+output_file_path = r"D:\组内项目\DGGS\data\cogtest\c-rHEALPix-" + str({
     resolution_idx}) + ".tif"
 
 raster2rhealpix(rdggs, rhealpix_common_proj_string, input_file_path, output_file_path,

@@ -1,3 +1,5 @@
+import zlib
+
 import rasterio
 from rasterio.transform import from_bounds
 import numpy as np
@@ -8,10 +10,14 @@ def bytes_to_geotiff(byte_array, result_dict, output_file, overview_level, row_k
     data_type = get_data_type(result_dict['sample_format'][overview_level],
                               result_dict['bit_per_sample'][overview_level])
     # Convert bytes to numpy array
+    byte_array = zlib.decompress(byte_array)
     data_array = np.frombuffer(byte_array, dtype=data_type)
     data_array = data_array.reshape(256, 256)
     data_array = data_array[::-1, :]
 
+    north_square = 1
+    south_square = 2
+    lon_0 = 0
     # Define metadata
     metadata = {
         'width': 256,
@@ -19,17 +25,16 @@ def bytes_to_geotiff(byte_array, result_dict, output_file, overview_level, row_k
         'count': 1,
         'dtype': data_type,
         'driver': 'GTiff',
-        'crs': CRS.from_user_input('EPSG:4326'),
+        # 'crs': CRS.from_user_input('EPSG:4326'),
+        'crs': CRS.from_proj4(
+            "+proj=rhealpix +ellps=WGS84 +south_square=" + str(south_square) + " +north_square=" + str(
+                north_square) + " +lon_0=" + str(lon_0)),
         'transform': from_bounds(
             result_dict['geo_transform'][3] + result_dict['cell_scale'][0] * 2 ** overview_level * 256 * col_key,
             result_dict['geo_transform'][4] - result_dict['cell_scale'][1] * 2 ** overview_level * 256 * row_key,
             result_dict['geo_transform'][3] + result_dict['cell_scale'][0] * 2 ** overview_level * 256 * (col_key + 1),
             result_dict['geo_transform'][4] - result_dict['cell_scale'][1] * 2 ** overview_level * 256 * (row_key + 1),
             256, 256)
-        # 'transform': from_origin(result_dict['geo_transform'][0], result_dict['geo_transform'][1],
-        #                          result_dict['cell_scale'][0] * (2 ** overview_level),
-        #                          result_dict['cell_scale'][1] * (2 ** overview_level))
-        # Adjust the origin and resolution
     }
 
     # Write the GeoTIFF

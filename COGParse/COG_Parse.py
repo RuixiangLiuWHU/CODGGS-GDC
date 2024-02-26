@@ -1,3 +1,5 @@
+import os
+
 import minio
 from Bytes_Parse import *
 from Tile_Deserializer import *
@@ -36,7 +38,6 @@ def minio_get_object(bucket, object, offset, length):
 
 def cog_header_bytes_parse(header_bytes):
     # Decode IFH
-    global image_width, image_height, bit_per_sample, tile_offsets, tile_byte_counts, sample_format, cell_scale, geo_transform, crs, band_count
     image_width = []
     image_height = []
     bit_per_sample = []
@@ -47,6 +48,8 @@ def cog_header_bytes_parse(header_bytes):
     crs = ''
     band_count = []
     sample_format = []
+    gdal_metadata = ''
+    gdal_nodata = ''
 
     ifh = get_int_ii(header_bytes, 4, 4)
     overview_level = -1
@@ -90,6 +93,10 @@ def cog_header_bytes_parse(header_bytes):
                 geo_transform = get_double_trans(p_data, type_size, count, header_bytes)
             elif tag_index == 34737:  # Spatial reference
                 crs = get_string(header_bytes, p_data, type_size * count - 1)
+            elif tag_index == 42112:  # GDAL_METADATA
+                gdal_metadata = get_string(header_bytes, p_data, type_size * count - 1)
+            elif tag_index == 42113:  # GDAL_NODATA
+                gdal_nodata = get_string(header_bytes, p_data, type_size * count - 1)
             # Previous
             ifh += 12
         ifh = get_int_ii(header_bytes, ifh, 4)
@@ -104,7 +111,9 @@ def cog_header_bytes_parse(header_bytes):
         # 1: unsigned integer data, 2: two’s complement signed integer data, 3: IEEE floating point data, 4: undefined data format
         'cell_scale': cell_scale,
         'geo_transform': geo_transform,
-        'crs': crs
+        'crs': crs,
+        'gdal_metadata': gdal_metadata,
+        'gdal_nodata': gdal_nodata
     }
     return result_dict
 
@@ -115,20 +124,26 @@ def get_tile(bucket_name, object_path, tile_offset, tile_byte_count):
 
 if __name__ == '__main__':
     bucket_name = 'geo-stream-cube'
-    object_name = 'a_clip_small_small_cogeo'
+    object_name = 'landsat_a_4326'
     object_path = 'test/' + object_name + '.tif'
     overview_level = 0
     header_bytes_bytes = minio_get_object(bucket_name, object_path, 0, 1500000)
     result_dict = cog_header_bytes_parse(header_bytes_bytes)
 
-    for overview_level in range(0, 3):
+    path_to_check = 'D:\\组内项目\\DGGS\\data\\cogtest_2_different_landsat\\' + object_name + '\\'
+    # 判断路径是否存在
+    if not os.path.exists(path_to_check):
+        # 如果路径不存在，则创建路径
+        os.makedirs(path_to_check)
+        print(f"路径 {path_to_check} 创建成功")
+    else:
+        print(f"路径 {path_to_check} 已经存在")
+    for overview_level in range(result_dict['tile_offsets'].__len__() - 3, result_dict['tile_offsets'].__len__()):
         for row_key in range(0, result_dict['tile_offsets'][overview_level].__len__()):
             for col_key in range(0, result_dict['tile_offsets'][overview_level][0].__len__()):
                 tile_bytes = get_tile(bucket_name, object_path,
                                       result_dict['tile_offsets'][overview_level][row_key][col_key],
                                       result_dict['tile_byte_counts'][overview_level][row_key][col_key])
-                print(result_dict['crs'])
                 bytes_to_geotiff(tile_bytes, result_dict,
-                                 'D:\\组内项目\\DGGS\\data\\cogtest\\' + object_name + '_' + str(
-                                     overview_level) + '_' + str(row_key) + '_' + str(col_key) + '.tif', overview_level,
-                                 row_key, col_key)
+                                 path_to_check + object_name + '_' + str(overview_level) + '_' + str(
+                                     row_key) + '_' + str(col_key) + '.tif', overview_level, row_key, col_key)
